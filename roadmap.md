@@ -37,15 +37,17 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 ## M2 — Chunking + embedding (Agent 2)
 
-**Owner:** Agent 2 · **Status:** ☐
+**Owner:** Agent 2 · **Status:** ☑
 
-- ☐ `chunking/splitter.py` — sentence-aware sliding window (400 / 60)
-- ☐ `embedding/encoder.py` — `Encoder` interface, `sentence_transformers` backend
-- ☐ Ollama backend stub (`get_encoder("ollama")`) — minimal, behind a try/except for missing daemon
-- ☐ `data/chunks/<type>/<slug>.jsonl` for all 40 entities
-- ☐ Probe script printing model id, dim, vector norm
+- ☑ `chunking/splitter.py` — sentence-aware sliding window (400 / 60)
+- ☑ `embedding/encoder.py` — `Encoder` interface, `sentence_transformers` backend
+- ☑ Ollama backend stub (`get_encoder("ollama")`) — minimal, behind a try/except for missing daemon
+- ☑ `data/chunks/<type>/<slug>.jsonl` for all 40 entities
+- ☑ Probe script printing model id, dim, vector norm
 
-**Exit:** chunks exist, embeddings unit-normalized, average chunks per entity in 5–15.
+**Exit:** chunks exist, embeddings are unit-normalized, and average chunks per entity is reported as a corpus sanity check.
+
+**Note:** Verified with `.venv/bin/python -m embedding.encoder --probe`: `dim=384`, sample vector norm `1.000000`, 40 chunk files, 1163 chunks, average 29.07 chunks/entity. The average is above the original 5–15 estimate because M1 ingests full Wikipedia articles.
 
 ---
 

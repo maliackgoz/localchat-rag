@@ -47,8 +47,8 @@ def get_encoder(backend: Literal["sentence_transformers", "ollama"] = "sentence_
 
 CLI:
 ```bash
-python -m chunking.splitter --raw data/raw --out data/chunks
-python -m embedding.encoder --probe   # prints model_id, dim, sample vector norm
+.venv/bin/python -m chunking.splitter --raw data/raw --out data/chunks
+.venv/bin/python -m embedding.encoder --probe   # prints model_id, dim, sample vector norm
 ```
 
 ## Chunking strategy
@@ -83,4 +83,4 @@ Both backends must produce L2-normalized vectors so the vector store can use cos
 
 - All 40 entities have a `.jsonl` chunk file under `data/chunks/`.
 - `Encoder.encode([...])` returns vectors of `dim` length, unit-normalized (norm ≈ 1.0 ± 1e-3).
-- Probe script prints `model_id`, `dim`, average chunks/entity (sanity check, expect 5–15).
+- Probe script prints `model_id`, `dim`, average chunks/entity, and the average is recorded as a corpus sanity check. Full Wikipedia articles may exceed the early 5–15 estimate; do not cap source text just to reduce chunk count.

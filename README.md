@@ -72,6 +72,8 @@ source .venv/bin/activate         # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+The `.venv/` directory is intentionally ignored by git and should stay in the project root. After the one-time install, use either the activated `python` command or the explicit `.venv/bin/python` path; the project `Makefile` uses `.venv/bin/python` so dependencies are reused instead of reinstalled. Its `probe` target also sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` so the already-downloaded MiniLM model is loaded from cache.
+
 The first import of `sentence-transformers` downloads the MiniLM model (~80 MB) into `~/.cache/huggingface/`. Subsequent runs are offline.
 
 ---
@@ -106,16 +108,19 @@ Two steps: **fetch** Wikipedia articles for the roster, then **chunk + embed + i
 
 ```bash
 # 1. Pull Wikipedia articles for the roster (20 people + 20 places)
-python -m ingest.wikipedia --roster data/roster.json --out data/raw
+.venv/bin/python -m ingest.wikipedia --roster data/roster.json --out data/raw
 
-# 2. Chunk, embed, and write to Chroma
-python -m store.vector_store --build
+# 2. Chunk the raw articles
+make chunk
+
+# 3. Embed and write to Chroma
+.venv/bin/python -m store.vector_store --build
 ```
 
 Both steps are **idempotent** — re-running uses cached docs and upserts existing chunks. To force a refetch of one entity:
 
 ```bash
-python -m ingest.wikipedia --refresh "Albert Einstein"
+.venv/bin/python -m ingest.wikipedia --refresh "Albert Einstein"
 ```
 
 The default roster is in [`data/roster.json`](data/roster.json) and contains the 20 + 20 minimum entities specified by the homework. Add more freely.
@@ -127,7 +132,7 @@ The default roster is in [`data/roster.json`](data/roster.json) and contains the
 **Streamlit (recommended for the demo):**
 
 ```bash
-streamlit run app/streamlit_app.py
+.venv/bin/streamlit run app/streamlit_app.py
 ```
 
 Opens at <http://localhost:8501> with chat history, source citations, intent badge ("searched in: people / places / both"), and per-answer latency.
@@ -135,7 +140,7 @@ Opens at <http://localhost:8501> with chat history, source citations, intent bad
 **CLI (no browser needed):**
 
 ```bash
-python -m app.cli
+.venv/bin/python -m app.cli
 ```
 
 | Command | Effect |
@@ -208,7 +213,7 @@ localchat-rag/
 | Action | Command |
 |--------|---------|
 | Clear chat history (in-memory) | `:reset` in CLI, "Reset chat" in sidebar |
-| Drop the vector store only | `python -m store.vector_store --reset` |
+| Drop the vector store only | `.venv/bin/python -m store.vector_store --reset` |
 | Wipe everything (raw + chunks + Chroma) | `rm -rf data/raw data/chunks data/chroma data/store_manifest.json` |
 
 After a wipe, re-run `ingest.wikipedia` then `store.vector_store --build`.
