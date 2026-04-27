@@ -27,7 +27,8 @@ Supporting documents:
 - [`AGENTS.md`](AGENTS.md) — agent index, shared contract, lifecycle, prompt template, conflict resolution
 - [`product_prd.md`](product_prd.md) — authoritative requirements and locked design decisions
 - [`roadmap.md`](roadmap.md) — phased milestones (M0–M8) with exit criteria
-- [`recommendation.md`](recommendation.md) — production-deployment notes (filled in M8)
+- [`recommendation.md`](recommendation.md) — production-deployment notes and scale-up trade-offs
+- [`demo_script.md`](demo_script.md) — 5-minute recording script
 
 This mirrors the multi-agent convention from the predecessor `google-in-a-day` repo while adding more rigor: nine numbered agent files, an explicit PRD, and a milestone roadmap.
 
@@ -104,7 +105,7 @@ curl http://127.0.0.1:11434/api/tags
 
 ## Ingest data
 
-Two steps: **fetch** Wikipedia articles for the roster, then **chunk + embed + index** them.
+Three steps: **fetch** Wikipedia articles for the roster, **chunk** them, then **embed + index** them.
 
 ```bash
 # 1. Pull Wikipedia articles for the roster (20 people + 20 places)
@@ -117,7 +118,7 @@ make chunk
 .venv/bin/python -m store.vector_store --build
 ```
 
-Both steps are **idempotent** — re-running uses cached docs and upserts existing chunks. To force a refetch of one entity:
+All three steps are **idempotent** — re-running uses cached docs and upserts existing chunks. To force a refetch of one entity:
 
 ```bash
 .venv/bin/python -m ingest.wikipedia --refresh "Albert Einstein"
@@ -148,6 +149,7 @@ Opens at <http://localhost:8501> with chat history, source citations, intent bad
 | `:sources` | Toggle citation display |
 | `:reset`   | Clear chat history (keeps the index) |
 | `:stats`   | Print vector store stats |
+| `:build`   | Rebuild the index from local chunks |
 | `:quit`    | Exit |
 
 ---
@@ -184,6 +186,18 @@ For these the system must return `"I don't know based on the indexed data."` rat
 
 ---
 
+## Run evaluation
+
+After the index is built and Ollama is running, run the golden-question harness:
+
+```bash
+HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -m eval.run_eval --golden eval/golden.jsonl --report eval/results/
+```
+
+The latest M7 report is [`eval/results/20260427T202149Z.md`](eval/results/20260427T202149Z.md): 20/20 cases passed, including both refusal cases. Total latency was p50 11167 ms / p95 18499 ms; retrieval was p50 46 ms / p95 123 ms, so local LLM generation is the bottleneck.
+
+---
+
 ## Project layout
 
 ```
@@ -203,6 +217,7 @@ localchat-rag/
 ├── product_prd.md      # locked requirements
 ├── roadmap.md          # M0–M8 plan
 ├── recommendation.md   # production-deployment notes
+├── demo_script.md      # 5-minute video walkthrough script
 └── requirements.txt
 ```
 
@@ -216,7 +231,7 @@ localchat-rag/
 | Drop the vector store only | `.venv/bin/python -m store.vector_store --reset` |
 | Wipe everything (raw + chunks + Chroma) | `rm -rf data/raw data/chunks data/chroma data/store_manifest.json` |
 
-After a wipe, re-run `ingest.wikipedia` then `store.vector_store --build`.
+After a wipe, re-run `ingest.wikipedia`, `chunking.splitter`, then `store.vector_store --build`.
 
 ---
 
@@ -232,15 +247,15 @@ After a wipe, re-run `ingest.wikipedia` then `store.vector_store --build`.
 
 ## Implementation status
 
-This repo currently sits at the end of **M0 (setup and contracts)**. The PRD, roadmap, agent files, package skeleton, and roster are in place; per-agent implementations land in M1–M8. Track progress in [`roadmap.md`](roadmap.md).
+This repo is implemented through **M8 docs** except for the external demo-video URL. The latest integrated eval passed 20/20 golden cases; track milestone status and verification notes in [`roadmap.md`](roadmap.md).
 
 ---
 
 ## Demo video
 
-A 5-minute Loom / unlisted YouTube walkthrough is recorded as part of M8 and linked here once available.
+The line-by-line recording guide is [`demo_script.md`](demo_script.md). Add the Loom or unlisted YouTube URL here after recording:
 
-[Demo video — coming with M8]
+[Demo video — pending recording URL]
 
 ---
 
@@ -253,4 +268,5 @@ A 5-minute Loom / unlisted YouTube walkthrough is recorded as part of M8 and lin
 | [`product_prd.md`](product_prd.md) | Authoritative requirements |
 | [`roadmap.md`](roadmap.md) | Phased milestones |
 | [`recommendation.md`](recommendation.md) | Production-deployment notes |
+| [`demo_script.md`](demo_script.md) | 5-minute demo script |
 | [`agents/`](agents/) | One contract file per role |
