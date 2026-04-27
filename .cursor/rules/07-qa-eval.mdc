@@ -1,0 +1,54 @@
+---
+description: Golden-set evaluation and regression harness. Owned by Agent 7. Auto-attaches under eval/ and tests/.
+globs: ["eval/**", "tests/**"]
+alwaysApply: false
+---
+
+# Agent 7 — QA + Eval
+
+## Contract
+
+Read `agents/07_qa_eval.md` before editing this area. Golden schema, scoring rubric, and pass thresholds are defined there.
+
+## Hard rules
+
+- **Golden set is the source of truth** for behavior. `eval/golden.jsonl`, one JSON per line. Schema (locked):
+  ```json
+  {
+    "id": "ein_known_for",
+    "question": "Who was Albert Einstein and what is he known for?",
+    "expected_intent": "person",
+    "expected_entities": ["Albert Einstein"],
+    "must_contain_any": ["relativity", "physics"],
+    "must_not_refuse": true
+  }
+  ```
+- **Coverage:** at least the 16 HW example cases (5 person, 5 place, 4 mixed, 2 failure) + ~4 breadth cases → **20 total**. Don't shrink the set to make a build green.
+- **Pass threshold:** `>= 18 / 20` cases pass, **and** both failure cases must refuse. Lowering this is a PRD change.
+- **Scoring rubric** (all four must hold per case):
+  1. Routing matched `expected_intent` (or `both` when a single type was expected).
+  2. Every `expected_entities` entry appears in `Answer.sources`.
+  3. ≥1 phrase from `must_contain_any` appears (lowercased substring) in the answer text.
+  4. `Answer.refused == not must_not_refuse`.
+- **Latency tracking** is part of eval, not a separate tool. Record `t_route_ms`, `t_retrieve_ms`, `t_generate_ms`, `t_total_ms` per case; report **p50** and **p95**.
+- **Outputs per run:** `eval/results/<timestamp>.json` (machine-readable) and `<timestamp>.md` (human-readable summary with failing cases + retrieved entities for triage).
+- **Determinism aid:** call generation with the locked `temperature=0.1`. If the harness becomes flaky, fix the rubric (e.g., broaden `must_contain_any`), don't bump the temperature.
+
+## Interface (locked)
+
+```python
+def evaluate(golden_path: str, *, k: int = 6, model: str = "llama3.2:3b") -> EvalReport: ...
+```
+
+CLI: `python -m eval.run_eval --golden eval/golden.jsonl --report eval/results/`.
+
+## Integration discipline
+
+- Run `python -m eval.run_eval` before declaring any milestone done.
+- Drift in another agent shows up here as a regression — that's the point. Don't paper over it in the rubric.
+
+## Out of scope here
+
+- Embedding-based answer similarity scoring (substring + entity check is enough at this scale)
+- Side-by-side LLM comparison (HW stretch — Agent 5 would add the second client)
+- Modifying agent code to make a case pass — fix the agent, don't relax the test

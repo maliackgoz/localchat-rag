@@ -1,0 +1,71 @@
+---
+description: localchat-rag multi-agent project root rules. Always loaded. Defines roles, ownership, locked decisions, and shared contract for the entire repo.
+alwaysApply: true
+---
+
+# Multi-agent project — global rules
+
+This is **localchat-rag**, a local Wikipedia RAG assistant built as a **multi-agent development effort**. **Nine agent roles** own distinct areas of the system. Agents do **NOT** talk at runtime — "agent" here means a developer role with a defined contract.
+
+## Read these before any non-trivial change
+
+- `AGENTS.md` — agent index
+- `product_prd.md` — authoritative requirements + locked decisions
+- `roadmap.md` — current milestone (M0–M8) and exit criteria
+- `agents/0N_<role>.md` — contract for the area being touched
+
+## Hard constraints (apply to every edit)
+
+1. **No external LLM API.** Ollama (local) for generation, sentence-transformers (local) for embeddings. Never `openai`, `anthropic`, `cohere`, or any hosted-inference client.
+2. **Local-only.** Embeddings + generation run on the user's machine. The Wikipedia REST API is the only outbound call, and only during ingest.
+3. **Grounded answers.** The generation layer returns `"I don't know based on the indexed data."` when retrieval is empty or the top similarity is below `min_sim=0.25`. Never fall back to LLM world knowledge.
+4. **Schema is contract.** Chunk record shape, vector store metadata keys, and roster format are defined in `product_prd.md`. Changing them requires a PRD edit in the **same turn**.
+5. **One owner per file.** See ownership map below. Cross-cutting edits (touching ≥2 areas) require updating the relevant agent files or the PRD.
+
+## Ownership map
+
+| Path | Owner | Contract |
+|------|-------|----------|
+| `ingest/**` | Agent 1 | `agents/01_ingestion.md` |
+| `chunking/**` | Agent 2 | `agents/02_chunking_embedding.md` |
+| `embedding/**` | Agent 2 | `agents/02_chunking_embedding.md` |
+| `store/**` | Agent 3 | `agents/03_vector_store.md` |
+| `retrieval/**` | Agent 4 | `agents/04_retrieval.md` |
+| `generation/**` | Agent 5 | `agents/05_generation.md` |
+| `app/**` | Agent 6 | `agents/06_chat_ui.md` |
+| `eval/**`, `tests/**` | Agent 7 | `agents/07_qa_eval.md` |
+| `README.md`, `recommendation.md`, `demo_script.md` | Agent 8 | `agents/08_docs.md` |
+| `product_prd.md`, `roadmap.md`, `AGENTS.md`, `agents/**` | Agent 0 (Orchestrator) | `agents/00_orchestrator.md` |
+
+## Locked decisions (do not change without a PRD edit)
+
+- Vector store: **Chroma**, **one collection**, metadata `{type, entity_name, wikipedia_url, position}`.
+- Embedding model: **`sentence-transformers/all-MiniLM-L6-v2`** (default), **`nomic-embed-text` via Ollama** (fallback behind `--encoder ollama`).
+- Chunking: **sentence-aware sliding window**, **400 tokens**, **60 overlap**.
+- LLM: **`llama3.2:3b`** via Ollama, temperature **0.1**, max tokens **512**.
+- Routing: **deterministic** (roster substring + keyword cues), **`min_sim=0.25`**, **`k=6`**.
+- UI: **Streamlit primary, CLI fallback**.
+
+## Coding style
+
+- **Native-first.** Prefer stdlib (`urllib`, `json`, `re`, `dataclasses`, `pathlib`) over pulling in libraries that do the work for us. The required deps are: `chromadb`, `sentence-transformers`, `ollama`, `streamlit`. Anything else needs justification.
+- **No comments explaining WHAT** — code should be obvious. Comments are for non-obvious WHY only (constraints, invariants, workarounds).
+- **Type-annotate** all public functions and dataclass fields.
+- **Errors fail loudly** when they indicate a broken assumption (disambiguation pages, missing Ollama, dim mismatch). They **fail gracefully** when they indicate normal absence (empty retrieval, off-roster query).
+- **Idempotency** for everything that writes to disk: re-running ingest, build, eval should produce equivalent results without manual cleanup.
+
+## When the task spans multiple agents
+
+1. Identify all affected areas.
+2. State which agent files / PRD sections govern each area.
+3. Either:
+   - Make the PRD edit + agent edits + code edits in the same turn, **or**
+   - Pause and ask the user to confirm scope.
+
+Do **NOT** silently modify another agent's area to make your area work. That is a contract change and must be surfaced.
+
+## Process discipline
+
+- New milestone: read the relevant `agents/0N_*.md` and `roadmap.md` row before writing code.
+- Finished milestone: update the `roadmap.md` Status flag and report (a) files changed, (b) command(s) to verify, (c) known limitations, (d) any PRD edits needed.
+- Before declaring an integration healthy: run `python -m eval.run_eval` (Agent 7).

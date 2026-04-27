@@ -1,0 +1,48 @@
+---
+description: Wikipedia ingestion. Owned by Agent 1. Auto-attaches when editing files under ingest/.
+globs: ["ingest/**"]
+alwaysApply: false
+---
+
+# Agent 1 — Ingestion
+
+## Contract
+
+Read `agents/01_ingestion.md` before editing this area. Authoritative outputs and CLI shape are defined there.
+
+## Hard rules
+
+- Use **`urllib`** from stdlib. Do **NOT** add `requests`, `wikipedia-api`, `mwclient`, or other Wikipedia wrappers — native-first per the PRD.
+- Endpoints to use:
+  - `https://en.wikipedia.org/api/rest_v1/page/summary/<title>` — summary + canonical URL
+  - `https://en.wikipedia.org/w/api.php?action=query&prop=extracts&explaintext=1&titles=<title>&format=json` — full plain-text body
+- Set `User-Agent: localchat-rag/1.0 (educational)`.
+- Throttle: 100–200 ms sleep between requests. Backoff on HTTP errors.
+- **Disambiguation guard:** if the API returns a disambiguation page, raise loudly. Never silently pick one of the candidates.
+- **Idempotent:** re-running with the same roster is a no-op unless `--force`. Track via SHA-256 of `text` in `_manifest.json`.
+- **Plain text only:** strip wiki markup, refs, and infobox markers from extracts.
+
+## Output schema (one file per entity)
+
+`data/raw/<type>/<slug>.json`:
+```json
+{
+  "entity_name": "Albert Einstein",
+  "type": "person",
+  "wikipedia_url": "https://en.wikipedia.org/wiki/Albert_Einstein",
+  "fetched_at": "2026-04-27T20:30:00Z",
+  "title": "Albert Einstein",
+  "summary": "...",
+  "text": "...full plain-text body..."
+}
+```
+
+`data/raw/_manifest.json` lists ingested entities with hash + fetch timestamp.
+
+## Out of scope here
+
+- Chunking → Agent 2 (`chunking/`)
+- Embedding → Agent 2 (`embedding/`)
+- Languages other than English (MVP scope)
+
+If a change here implies an `_manifest.json` schema change or a roster format change, update `product_prd.md` first.

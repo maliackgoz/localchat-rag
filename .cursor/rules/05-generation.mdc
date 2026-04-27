@@ -1,0 +1,45 @@
+---
+description: Local LLM generation with grounded prompts. Owned by Agent 5. Auto-attaches when editing files under generation/.
+globs: ["generation/**"]
+alwaysApply: false
+---
+
+# Agent 5 — Generation
+
+## Contract
+
+Read `agents/05_generation.md` before editing this area. Prompt template and refusal contract are defined there.
+
+## Hard rules
+
+- **Local LLM only.** Ollama at `http://127.0.0.1:11434`. **Never** import `openai`, `anthropic`, `cohere`, or any hosted-inference SDK. This is the project's defining constraint.
+- **Model:** `llama3.2:3b` (locked in PRD). `temperature = 0.1`, `max_tokens = 512`. Changing any of these is a PRD edit.
+- **Grounded answers only.** Use ONLY the provided context. Outside knowledge is forbidden by the system prompt and must remain forbidden.
+- **Refusal string is exact:** `"I don't know based on the indexed data."` Do not paraphrase, translate, or "improve" it — Agent 7's eval matches on this string.
+- **Empty / weak retrieval shortcut.** If `len(retrieval.chunks) == 0` or top similarity `< min_sim`, return the IDK answer **without calling Ollama**. Saves latency and prevents hallucination off whitespace.
+- **Refusal detection.** Any answer starting with "I don't know" sets `Answer.refused = True` so the UI styles it and Agent 7 scores it.
+- **Sources are deduped entity names** actually present in the chunks fed to the model — not the whole roster, not what the model "mentioned".
+- **Streaming is mandatory** for the Streamlit UX. `OllamaClient.generate(stream=True)` yields token deltas.
+
+## Interfaces (locked)
+
+```python
+class OllamaClient:
+    def __init__(self, model: str, host: str = "http://127.0.0.1:11434"): ...
+    def generate(self, prompt: str, *, stream: bool = False) -> Iterator[str] | str: ...
+    def health(self) -> bool: ...
+
+class Answerer:
+    def __init__(self, client: OllamaClient): ...
+    def answer(self, retrieval: RetrievalResult) -> Answer: ...
+    def stream(self, retrieval: RetrievalResult) -> Iterator[AnswerChunk]: ...
+```
+
+## Out of scope here
+
+- Multi-turn conversation memory → stretch (Agent 6 owns chat state)
+- Tool / function calling → out of scope
+- Multi-LLM comparison → stretch
+- Routing decisions → Agent 4 (`retrieval/`)
+
+When tempted to "let the model fix it" (e.g., handle ambiguity by asking it to use general knowledge), stop. The grounded contract is the assignment.

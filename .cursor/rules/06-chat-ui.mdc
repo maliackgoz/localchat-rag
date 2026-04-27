@@ -1,0 +1,34 @@
+---
+description: Streamlit chat UI and CLI fallback. Owned by Agent 6. Auto-attaches when editing files under app/.
+globs: ["app/**"]
+alwaysApply: false
+---
+
+# Agent 6 — Chat UI
+
+## Contract
+
+Read `agents/06_chat_ui.md` before editing this area. Layout and CLI command surface are defined there.
+
+## Hard rules
+
+- **Two surfaces, same pipeline.** `app/streamlit_app.py` (primary, for the demo) and `app/cli.py` (fallback, for graders without a browser). Both call the same `Retriever` + `Answerer`.
+- **No business logic in the UI.** Routing, retrieval, generation, and refusal handling live in their owning agents. The UI renders results; it does not decide them.
+- **Streaming UX.** Tokens appear as they arrive (`st.write_stream` or equivalent). Sources fill in once the answer completes.
+- **Per-answer surface area** (Streamlit):
+  - Intent badge: "searched in: people / places / both".
+  - "Sources used" expander: entity name + `wikipedia_url` + the chunk text actually shown to the model.
+  - Latency in ms.
+  - Refusal styling distinct from normal answers.
+- **CLI commands** (locked): `:sources` toggle, `:reset` clear chat, `:stats` print store stats, `:quit` exit.
+- **Reset semantics.** "Reset chat" clears in-memory turns only. A separate, confirm-guarded "Clear index" calls `VectorStore.reset()` — distinct buttons, distinct intent.
+- **State is in-memory.** No on-disk chat history in MVP (stretch only).
+
+## Out of scope here
+
+- Auth, multi-user (single local user — defining constraint of the assignment)
+- Conversation memory injected into retrieval (stretch — risks contaminating context)
+- Custom theming / heavy CSS — Streamlit defaults are fine
+- Modifying `Retriever`, `Answerer`, or store internals — those are Agents 3–5
+
+If the UI needs a piece of data the pipeline doesn't expose, add it to the relevant agent's interface (with their contract update) — don't recompute it in the UI.

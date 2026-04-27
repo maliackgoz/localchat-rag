@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+.venv/
+venv/
+.env
+
+.DS_Store
+.idea/
+.vscode/
+
+# Eval result history is regenerated; commit golden.jsonl, not results
+eval/results/

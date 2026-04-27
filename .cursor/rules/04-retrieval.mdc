@@ -1,0 +1,44 @@
+---
+description: Query routing and filtered retrieval. Owned by Agent 4. Auto-attaches when editing files under retrieval/.
+globs: ["retrieval/**"]
+alwaysApply: false
+---
+
+# Agent 4 — Retrieval
+
+## Contract
+
+Read `agents/04_retrieval.md` before editing this area. Routing rules and merge strategy are defined there.
+
+## Hard rules
+
+- **Deterministic routing only.** No LLM call to classify intent. Roster substring match + keyword cues, in this fixed order:
+  1. Direct entity match (case-insensitive, word-boundary) against `data/roster.json`.
+  2. Keyword cues — places: `where`, `located`, `country`, `mountain`, `river`, `built`, `landmark`, `city`. People: `who`, `born`, `discovered`, `invented`, `wrote`, `played`, `painted`, `compose`.
+  3. Default → `both`.
+- **`min_sim = 0.25`** (locked in PRD). Drop chunks below this similarity. Configurable, but the default is locked.
+- **`k = 6`** default top-k (locked in PRD).
+- **Two-pass retrieval when `intent == both`:** search `person` and `place` separately with `k` each, merge by score, dedupe by `chunk_id`, keep top `k`.
+- **Entity boost:** when `matched_entities` is non-empty, run an extra pass with `entity_filter=matched_entities` and merge — guarantees one-token queries like "Tesla" still hit the right doc.
+- **Surface the decision.** `RetrievalResult.intent` and `matched_entities` must be populated so the UI (Agent 6) can render "searched in: people / places / both".
+
+## Interfaces (locked)
+
+```python
+def classify_intent(query: str, roster: Roster) -> tuple[Intent, list[str]]: ...
+
+class Retriever:
+    def __init__(self, store: VectorStore, roster: Roster): ...
+    def retrieve(self, query: str, *, k: int = 6) -> RetrievalResult: ...
+```
+
+`RetrievalResult` shape is locked in `agents/04_retrieval.md`.
+
+## Out of scope here
+
+- Cross-encoder re-rank → M6 stretch only
+- LLM-based query rewriting → M6 stretch only
+- Generation / refusal logic → Agent 5 (`generation/`)
+- Vector store internals → Agent 3 (`store/`)
+
+If a routing change improves recall but breaks Agent 7's golden set, that's a regression — fix the implementation, don't lower the bar.

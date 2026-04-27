@@ -1,0 +1,41 @@
+---
+description: Project docs, PRD, agent contracts, roadmap. Owned by Agent 8 (with Orchestrator for PRD). Auto-attaches when editing markdown and agent files.
+globs: ["*.md", "agents/**", "**/*.md"]
+alwaysApply: false
+---
+
+# Agent 8 — Docs (and Orchestrator co-ownership of governance docs)
+
+## Contract
+
+Read `agents/08_docs.md` before editing user-facing docs. For governance files (`product_prd.md`, `roadmap.md`, `AGENTS.md`, `agents/**`), Agent 0 is the owner — see `agents/00_orchestrator.md`.
+
+## Ownership inside this glob
+
+| File(s) | Owner | Notes |
+|---------|-------|-------|
+| `README.md`, `recommendation.md`, `demo_script.md` | Agent 8 | User- and grader-facing |
+| `product_prd.md` | Agent 0 (Orchestrator) | Authoritative requirements; locked decisions live here |
+| `roadmap.md` | Agent 0 | Milestone status; flip flags when a milestone closes |
+| `AGENTS.md` | Agent 0 | Index, lifecycle, prompt template, conflict resolution |
+| `agents/0N_*.md` | Agent 0 (cross-cutting) or the owning agent for area-specific contract details |
+
+## Hard rules
+
+- **PRD is the source of truth.** Code, agent files, and README must reflect it. When code and PRD disagree, fix the PRD first (or the code, depending on intent), then the other.
+- **Locked-decision changes are PRD changes.** Embedding model, chunking params, LLM model, `min_sim`, `k`, vector store choice — all live in the PRD. Touching them without a PRD edit in the **same turn** is a contract break.
+- **README must let an instructor run the project from scratch** with no extra guidance. Steps in order: prerequisites → install → pull model → ingest → build store → run UI → example queries → reset.
+- **Real numbers, not placeholders.** Latency, eval pass rate, chunk counts come from Agent 7's reports. Do not fabricate metrics in `recommendation.md` or `demo_script.md`.
+- **Agent files state inputs, outputs, interfaces, non-goals, and "done when".** Keep them under ~80 lines each — they're contracts, not tutorials.
+- **Roadmap status flags** flip only when the agent in charge has run their verification commands. The Orchestrator updates them at handoff.
+- **Demo script stays under 5 minutes** and is rehearsed against a real run, not aspirational.
+
+## Cross-agent edits via this rule
+
+When a doc edit implies a behavioral change (e.g., updating README to describe a new flag), make the corresponding code edit in another agent's area in the **same turn**, or pause and surface the cross-cutting scope. Do not leave docs and code out of sync.
+
+## Out of scope here
+
+- Marketing copy, screenshots beyond what the README needs
+- Per-agent documentation duplication — agent files own their own contracts; the README links to `AGENTS.md`
+- Auto-generated API docs (the project is small enough that hand-written prose is clearer)

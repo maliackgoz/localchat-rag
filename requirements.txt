@@ -1,0 +1,13 @@
+# Vector store (HW-recommended)
+chromadb>=0.5.0
+
+# Local embedding model (HW-listed alternative to Ollama embeddings)
+# Pulls torch as a transitive dep; ~80MB MiniLM weights cached on first use
+sentence-transformers>=2.7.0
+
+# Local LLM client; the Ollama daemon must be installed separately
+# (see https://ollama.com/download and `ollama pull llama3.2:3b`)
+ollama>=0.3.0
+
+# Chat UI
+streamlit>=1.30.0

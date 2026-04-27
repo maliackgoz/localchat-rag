@@ -1,0 +1,58 @@
+---
+description: Chroma vector store. Owned by Agent 3. Auto-attaches when editing files under store/.
+globs: ["store/**"]
+alwaysApply: false
+---
+
+# Agent 3 — Vector Store
+
+## Contract
+
+Read `agents/03_vector_store.md` before editing this area. Authoritative interfaces and idempotency rules are defined there.
+
+## Hard rules
+
+- **Single Chroma collection** named `wikipedia_rag`. Do **NOT** add a second collection — routing is metadata-driven (Agent 4), not a storage concern. This is **Option B** in the PRD; switching to Option A is a PRD change.
+- **Persistent client only.** Use `chromadb.PersistentClient(path="data/chroma")`. Never the in-memory client outside of unit tests.
+- **Metadata schema** (locked — every chunk):
+  ```json
+  {
+    "type": "person",        // or "place"
+    "entity_name": "Albert Einstein",
+    "wikipedia_url": "...",
+    "position": 7
+  }
+  ```
+  Adding / renaming keys requires a `product_prd.md` edit in the same turn.
+- **Idempotent upsert.** `upsert_entity` deletes existing chunks for that `entity_name` before inserting. Re-running build after re-ingest must converge to the same state.
+- **Encoder coupling.** The store accepts an `Encoder` (Agent 2) and uses its `dim` for sanity checks. Dim mismatch on load → fail loudly.
+- **Manifest.** `data/store_manifest.json` maps `entity_name → list[chunk_id]`. Update on every upsert/remove.
+
+## Interfaces (locked)
+
+```python
+class VectorStore:
+    def __init__(self, persist_dir: str, encoder: Encoder): ...
+    def upsert_entity(self, entity_name: str, type_: str, chunks: list[Chunk]) -> None: ...
+    def remove_entity(self, entity_name: str) -> None: ...
+    def query(
+        self,
+        text: str,
+        *,
+        k: int = 6,
+        type_filter: Literal["person", "place", "any"] = "any",
+        entity_filter: list[str] | None = None,
+    ) -> list[RetrievedChunk]: ...
+    def stats(self) -> dict: ...
+    def reset(self) -> None: ...
+```
+
+CLI: `python -m store.vector_store --build | --stats | --query "<q>" --type <t>`.
+
+## Out of scope here
+
+- Routing logic → Agent 4 (`retrieval/`)
+- Hybrid BM25, sharding, multi-collection (M6 stretch only after PRD edit)
+- Chunk shape / embedding → Agent 2
+
+Score conversion lives here: Chroma returns distances; expose `similarity = 1 - distance` so callers don't reimplement it.

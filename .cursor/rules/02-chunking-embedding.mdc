@@ -1,0 +1,59 @@
+---
+description: Sentence-aware chunking and local embedding. Owned by Agent 2. Auto-attaches under chunking/ and embedding/.
+globs: ["chunking/**", "embedding/**"]
+alwaysApply: false
+---
+
+# Agent 2 — Chunking + Embedding
+
+## Contract
+
+Read `agents/02_chunking_embedding.md` before editing this area.
+
+## Chunking rules (chunking/)
+
+- **Sentence-aware sliding window.** Split on `[.!?]\s+(?=[A-Z])` (regex; no NLTK / spaCy dep).
+- **Defaults:** `target_tokens=400`, `overlap=60`. Both configurable but locked in `product_prd.md`.
+- **Greedy pack** sentences until adding the next would exceed `target_tokens`; close at sentence boundary.
+- **Slide back** by ~`overlap` tokens of sentences before starting the next chunk so cross-boundary facts survive.
+- **Prepend entity name** to every chunk's stored text: `"Albert Einstein — <chunk text>"`. Keeps tiny chunks retrievable by entity.
+
+## Chunk record
+
+```json
+{
+  "chunk_id": "<entity_slug>__<position:04>",
+  "entity_name": "Albert Einstein",
+  "type": "person",
+  "wikipedia_url": "...",
+  "position": 7,
+  "n_tokens": 397,
+  "text": "Albert Einstein — ..."
+}
+```
+
+Output: `data/chunks/<type>/<slug>.jsonl` (one chunk per line). Vectors are NOT persisted here — they stream straight into the vector store (Agent 3).
+
+## Embedding rules (embedding/)
+
+- **Default backend:** `sentence-transformers/all-MiniLM-L6-v2` (384-d, ~80 MB).
+- **Fallback backend:** `nomic-embed-text` via Ollama, behind `get_encoder("ollama")`.
+- **L2-normalize** all vectors so cosine similarity is consistent across backends.
+- **Encoder interface** (single shape, both backends):
+  ```python
+  class Encoder:
+      def encode(self, texts: list[str]) -> list[list[float]]: ...
+      @property
+      def dim(self) -> int: ...
+      @property
+      def model_id(self) -> str: ...
+  ```
+- **Batched** by default (Chroma will pass batches of chunks).
+
+## Out of scope here
+
+- Persisting chunks to a vector store → Agent 3 (`store/`)
+- Re-ranking → Agent 4 (stretch)
+- Fine-tuning the encoder → out of scope for the project
+
+Changing chunk size, overlap, or default encoder is a PRD change.
