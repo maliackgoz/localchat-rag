@@ -145,6 +145,8 @@ def render_prompt(retrieval: RetrievalResult) -> str:
         f'- If the answer is not present, reply exactly: "{IDK_TEXT}"\n'
         "- Be concise (3-6 sentences) unless the user asks to compare; comparisons may be longer.\n"
         '- When citing a fact, name the entity it came from (e.g., "According to the Albert Einstein article, ...").\n'
+        "- For comparison, contrast, similarity, or difference questions, synthesize across chunks when each claim is supported by the context.\n"
+        f'- If any side of a requested comparison lacks support in the context, reply exactly: "{IDK_TEXT}"\n'
         '- For discovery questions, prefer explicit named discoveries from the context over research-process details.\n\n'
         "CONTEXT:\n"
         f"{numbered_chunks}\n\n"

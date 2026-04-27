@@ -96,6 +96,24 @@ class RetrieverTests(unittest.TestCase):
         self.assertEqual({chunk.entity_name for chunk in result.chunks}, {"Eiffel Tower", "Statue of Liberty"})
         self.assertTrue(any(call["entity_filter"] == ["Statue of Liberty"] for call in store.calls))
 
+    def test_comparison_queries_prefer_overview_chunks_for_each_entity(self) -> None:
+        store = FakeStore(
+            [
+                retrieved_chunk("tesla__0005", "Nikola Tesla", "person", 5, 0.95),
+                retrieved_chunk("eiffel__0004", "Eiffel Tower", "place", 4, 0.90),
+                retrieved_chunk("eiffel__0000", "Eiffel Tower", "place", 0, 0.36),
+                retrieved_chunk("tesla__0000", "Nikola Tesla", "person", 0, 0.35),
+            ]
+        )
+        retriever = Retriever(store, self.roster)
+
+        result = retriever.retrieve("What is different between Nikola Tesla and the Eiffel Tower?", k=2)
+
+        self.assertEqual({chunk.entity_name for chunk in result.chunks}, {"Nikola Tesla", "Eiffel Tower"})
+        self.assertEqual({chunk.position for chunk in result.chunks}, {0})
+        self.assertTrue(any(call["text"] == "Nikola Tesla" for call in store.calls))
+        self.assertTrue(any(call["text"] == "Eiffel Tower" for call in store.calls))
+
     def test_one_word_entity_query_can_beat_higher_unpinned_score(self) -> None:
         store = FakeStore(
             [

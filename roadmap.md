@@ -115,14 +115,16 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 ## M7 — QA, eval, latency (Agent 7)
 
-**Owner:** Agent 7 · **Status:** ☐
+**Owner:** Agent 7 · **Status:** ☑
 
-- ☐ `eval/golden.jsonl` with ≥20 cases (16 from HW + 4 stretch)
-- ☐ `eval/run_eval.py` producing JSON + Markdown reports
-- ☐ p50 / p95 latency report
-- ☐ ≥18 / 20 passing including both failure cases
+- ☑ `eval/golden.jsonl` with ≥20 cases (16 from HW + 4 stretch)
+- ☑ `eval/run_eval.py` producing JSON + Markdown reports
+- ☑ p50 / p95 latency report
+- ☑ ≥18 / 20 passing including both failure cases
 
 **Exit:** eval can run from a clean checkout (after M3 build) and writes a report under `eval/results/`.
+
+**Note:** Verified with `.venv/bin/python -m unittest` (32 tests) and `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -m eval.run_eval --golden eval/golden.jsonl --report eval/results/`: 20/20 cases passed, including both refusal cases. Latest report: `eval/results/20260427T202149Z.md`; total latency p50 11167 ms / p95 18499 ms.
 
 ---
 

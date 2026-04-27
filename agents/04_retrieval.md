@@ -46,6 +46,7 @@ The router records its decision so the UI can show "I searched in: people" — t
 - Search with `k * 2` candidates under the chosen filter.
 - If `intent == both`, do two searches (`person`, `place`) with `k` each, merge by score, dedupe by `chunk_id`, keep top `k`.
 - If `matched_entities` is non-empty, run an additional pass with `entity_filter=matched_entities` and merge — this guarantees that named entities are represented in context even when their chunks have lower raw similarity (e.g., one-word queries like "Tesla").
+- If a query matches multiple entities and uses comparison language (`compare`, `difference`, `similar`, `versus`, etc.), add an entity-name overview search for each matched entity and prefer each entity's earliest qualifying chunk. This keeps comparisons balanced without hard-coding entity-specific metadata.
 - Score: cosine similarity (Chroma returns distances; convert with `1 - distance`).
 - Drop chunks with similarity below `min_sim = 0.25` (configurable) to reduce hallucination triggers.
 

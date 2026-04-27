@@ -103,6 +103,7 @@ class AnswererTests(unittest.TestCase):
         prompt = str(client.calls[0]["prompt"])
         self.assertIn("[1] (Marie Curie, person)", prompt)
         self.assertIn("Use ONLY the context below", prompt)
+        self.assertIn("synthesize across chunks", prompt)
         self.assertIn("What did Marie Curie discover?", prompt)
 
     def test_refusal_detection_marks_llm_idk_response(self) -> None:

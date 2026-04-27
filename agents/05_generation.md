@@ -49,6 +49,8 @@ RULES:
 - If the answer is not present, reply exactly: "I don't know based on the indexed data."
 - Be concise (3–6 sentences) unless the user asks to compare; comparisons may be longer.
 - When citing a fact, name the entity it came from (e.g., "According to the Albert Einstein article, ...").
+- For comparison, contrast, similarity, or difference questions, synthesize across chunks when each claim is supported by the context.
+- If any side of a requested comparison lacks support in the context, reply exactly: "I don't know based on the indexed data."
 
 CONTEXT:
 {numbered_chunks}
