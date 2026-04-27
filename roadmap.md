@@ -100,14 +100,16 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 ## M6 — Chat UI (Agent 6)
 
-**Owner:** Agent 6 · **Status:** ☐
+**Owner:** Agent 6 · **Status:** ☑
 
-- ☐ `app/streamlit_app.py` with sidebar, chat history, sources expander, intent badge, latency
-- ☐ `app/cli.py` REPL with `:sources`, `:reset`, `:stats`, `:quit`
-- ☐ "Reset chat" and (separately) "Clear index" controls
-- ☐ Streaming token rendering
+- ☑ `app/streamlit_app.py` with sidebar, chat history, sources expander, intent badge, latency
+- ☑ `app/cli.py` REPL with `:sources`, `:reset`, `:stats`, `:quit`
+- ☑ "Reset chat" and (separately) "Clear index" controls
+- ☑ Streaming token rendering
 
 **Exit:** `streamlit run app/streamlit_app.py` and `python -m app.cli` both answer all 14 example questions and refuse the 2 failure cases.
+
+**Note:** Verified with `.venv/bin/python -m unittest` (29 tests), `.venv/bin/python -B -c "import app.streamlit_app"`, and CLI smoke checks using `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m app.cli`: "What did Marie Curie discover?" returned a grounded Marie Curie answer, and "Who is the president of Mars?" returned the required IDK refusal.
 
 ---
 
