@@ -53,14 +53,16 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 ## M3 — Vector store (Agent 3)
 
-**Owner:** Agent 3 · **Status:** ☐
+**Owner:** Agent 3 · **Status:** ☑
 
-- ☐ `store/vector_store.py` — `VectorStore` class with `upsert_entity`, `query`, `remove_entity`, `reset`, `stats`
-- ☐ Persistent Chroma directory at `data/chroma/`
-- ☐ `data/store_manifest.json` for idempotency
-- ☐ CLI: `--build`, `--stats`, `--query`, `--type`, `--reset`
+- ☑ `store/vector_store.py` — `VectorStore` class with `upsert_entity`, `query`, `remove_entity`, `reset`, `stats`
+- ☑ Persistent Chroma directory at `data/chroma/`
+- ☑ `data/store_manifest.json` for idempotency
+- ☑ CLI: `--build`, `--stats`, `--query`, `--type`, `--reset`
 
 **Exit:** `--build` is idempotent, `stats()` shows ≥40 entities; filtered query returns only the requested type.
+
+**Note:** Verified with `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -m store.vector_store --reset --build`: 40 entities, 1163 chunks, dim 384. `--query "Eiffel Tower" --type place --k 3` returned three `place` chunks from Eiffel Tower, and reset/rebuild produced an identical `data/store_manifest.json`.
 
 ---
 
