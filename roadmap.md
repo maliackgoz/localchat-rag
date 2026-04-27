@@ -68,29 +68,33 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 ## M4 — Retrieval (Agent 4)
 
-**Owner:** Agent 4 · **Status:** ☐
+**Owner:** Agent 4 · **Status:** ☑
 
-- ☐ `retrieval/router.py` — `classify_intent`
-- ☐ `retrieval/retriever.py` — `Retriever` with `retrieve(query, k)`
-- ☐ Two-pass merge for `intent=both`
-- ☐ Entity-pinned search when roster names are in the query
-- ☐ `min_sim` threshold to drop noise
+- ☑ `retrieval/router.py` — `classify_intent`
+- ☑ `retrieval/retriever.py` — `Retriever` with `retrieve(query, k)`
+- ☑ Two-pass merge for `intent=both`
+- ☑ Entity-pinned search when roster names are in the query
+- ☑ `min_sim` threshold to drop noise
 
 **Exit:** routing matches expected intent on the HW examples; entity-pinned queries surface the right entity even for one-word queries.
+
+**Note:** Verified with `.venv/bin/python -m unittest`: 17 tests pass, including routing keyword/entity cases, one-word `Tesla` matching, two-pass `both` retrieval, entity-pinned merge, dedupe, and `min_sim=0.25` filtering.
 
 ---
 
 ## M5 — Generation (Agent 5)
 
-**Owner:** Agent 5 · **Status:** ☐
+**Owner:** Agent 5 · **Status:** ☑
 
-- ☐ `generation/llm.py` — `OllamaClient` (sync + streaming)
-- ☐ `generation/answerer.py` — `Answerer` with grounded prompt and IDK shortcut
-- ☐ Refusal detection
-- ☐ Source list in `Answer` payload
+- ☑ `generation/llm.py` — `OllamaClient` (sync + streaming)
+- ☑ `generation/answerer.py` — `Answerer` with grounded prompt and IDK shortcut
+- ☑ Refusal detection
+- ☑ Source list in `Answer` payload
 - ☐ Optional: parallel comparator for two LLMs (HW stretch)
 
 **Exit:** `answer()` returns IDK for empty / low-similarity retrieval without calling Ollama; example questions produce grounded answers citing the right entity.
+
+**Note:** Verified with `.venv/bin/python -m unittest`: 25 tests pass, including M5 unit coverage for empty / low-similarity IDK shortcuts, prompt rendering, source dedupe, refusal detection, entity-article citation cleanup, and streaming chunks. Live smoke with local `llama3.2:3b` answered "What did Marie Curie discover?" with `refused=False`, Marie Curie sources, and a grounded answer citing the Marie Curie article and radioactivity.
 
 ---
 
