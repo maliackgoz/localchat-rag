@@ -51,6 +51,7 @@ The takeaway: a strong model produces the contracts once; a cheaper model implem
 
 | Requirement | Why |
 |------|-----|
+| [GNU Make](https://www.gnu.org/software/make/) | Recommended path uses `Makefile` targets (bundled on macOS/Linux) |
 | Python 3.10+ | Type-annotation syntax used in the codebase |
 | ~2 GB free disk | sentence-transformers model + Chroma DB + raw Wikipedia text |
 | [Ollama](https://ollama.com/download) installed and running | Local LLM (no external API allowed per project spec) |
@@ -58,21 +59,59 @@ The takeaway: a strong model produces the contracts once; a cheaper model implem
 
 ---
 
+## Instructor quickstart (copy in order)
+
+Assumes **[GNU Make](https://www.gnu.org/software/make/)** (included on macOS/Linux; Windows: Visual Studio Build Tools **or** MSYS2 **or** WSL — if you cannot use Make, follow the **`python -m` fallbacks** in each section).
+
+1. Obtain the project: `git clone <URL>` **or** unzip the submission archive, then `cd` into the project root (`Makefile` + `requirements.txt` live here).
+2. **`make install`** — creates `.venv/` and installs `requirements.txt`.
+3. [Run the local LLM](#run-the-local-llm-ollama): install Ollama, **`ollama pull llama3.2:3b`**, confirm **`curl http://127.0.0.1:11434/api/tags`** (Makefile does not manage Ollama).
+4. **`make data`** — Wikipedia fetch (**`make ingest`**), **`make chunk`**, **`make build`** into Chroma in one shot (`data` expands to ingest → chunk → build).
+5. **`make run-ui`** for Streamlit (**`make run-cli`** for CLI).
+6. Try the [example queries](#example-queries).
+
+| Target | Purpose |
+|--------|---------|
+| `make install` | Venv + `pip install -r requirements.txt` |
+| `make ingest` | Fetch roster → `data/raw/` |
+| `make chunk` | Raw → `data/chunks/` |
+| `make build` | Chroma index from chunks |
+| `make data` | `ingest` + `chunk` + `build` |
+| `make probe` | Offline check that MiniLM loads |
+| `make run-ui` / `make run-cli` | Streamlit / CLI |
+| `make eval` | Golden-question harness (needs Ollama) |
+| `make test` | Unit tests |
+
+Override paths when needed: `make ingest ROSTER=path/to/roster.json` or `make chunk RAW_DIR=... CHUNKS_DIR=...`.
+
+You need an internet connection at least once for ingest (and for pulling Ollama / the embedding model). After artifacts exist under `data/`, embeddings can run offline (`make probe`, `make eval`).
+
+---
+
 ## Install dependencies
 
-```bash
-git clone <this repo>
-cd localchat-rag
+**Preferred (matches quickstart):**
 
+```bash
+make install
+```
+
+**Manual equivalent** (if you skip Make entirely):
+
+```bash
+# From the repo root (the folder that contains README.md and requirements.txt)
 python3 -m venv .venv
-source .venv/bin/activate         # Windows: .venv\Scripts\activate
+source .venv/bin/activate         # Windows CMD: .venv\Scripts\activate.bat
+                                # Windows PowerShell: .venv\Scripts\Activate.ps1
 
 pip install -r requirements.txt
 ```
 
-The `.venv/` directory is intentionally ignored by git and should stay in the project root. After the one-time install, use either the activated `python` command or the explicit `.venv/bin/python` path; the project `Makefile` uses `.venv/bin/python` so dependencies are reused instead of reinstalled. Its `probe` target also sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` so the already-downloaded MiniLM model is loaded from cache.
+The `.venv/` directory is intentionally ignored by git and should stay in the project root. The `Makefile` uses `.venv/bin/python` for all targets. The `probe` target sets `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1` so the already-downloaded MiniLM model is loaded from cache.
 
 The first import of `sentence-transformers` downloads the MiniLM model (~80 MB) into `~/.cache/huggingface/`. Subsequent runs are offline.
+
+**Windows paths:** Commands below use POSIX-style `.venv/bin/python`. On Windows after activating the venv, use `python -m …` instead, or invoke `.venv\Scripts\python.exe` (and `.venv\Scripts\streamlit.exe` for the UI).
 
 ---
 
@@ -104,14 +143,21 @@ curl http://127.0.0.1:11434/api/tags
 
 Three steps: **fetch** Wikipedia articles for the roster, **chunk** them, then **embed + index** them.
 
+**With Make (preferred):**
+
 ```bash
-# 1. Pull Wikipedia articles for the roster (20 people + 20 places)
-.venv/bin/python -m ingest.wikipedia --roster data/roster.json --out data/raw
-
-# 2. Chunk the raw articles
+make data
+# or step-by-step:
+make ingest
 make chunk
+make build
+```
 
-# 3. Embed and write to Chroma
+**Without Make** (same commands the Makefile runs):
+
+```bash
+.venv/bin/python -m ingest.wikipedia --roster data/roster.json --out data/raw
+.venv/bin/python -m chunking.splitter --raw data/raw --out data/chunks
 .venv/bin/python -m store.vector_store --build
 ```
 
@@ -130,16 +176,20 @@ The default roster is in [`data/roster.json`](data/roster.json) and contains the
 **Streamlit (recommended for the demo):**
 
 ```bash
-.venv/bin/streamlit run app/localchat_rag.py
+make run-ui
 ```
+
+Equivalent: `.venv/bin/python -m streamlit run app/localchat_rag.py`
 
 Opens at <http://localhost:8501> with programmatic navigation (**localchat-rag** overview, **Chat**, **Ingestion**). Chat provides history, source citations, intent badge ("searched in: people / places / both"), and per-answer latency.
 
 **CLI (no browser needed):**
 
 ```bash
-.venv/bin/python -m app.cli
+make run-cli
 ```
+
+Equivalent: `.venv/bin/python -m app.cli`
 
 | Command | Effect |
 |---------|--------|
@@ -188,7 +238,7 @@ For these the system must return `"I don't know based on the indexed data."` rat
 After the index is built and Ollama is running, run the golden-question harness:
 
 ```bash
-HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -m eval.run_eval --golden eval/golden.jsonl --report eval/results/
+make eval
 ```
 
 The latest M7 report is [`eval/results/20260427T202149Z.md`](eval/results/20260427T202149Z.md): 20/20 cases passed, including both refusal cases. Total latency was p50 11167 ms / p95 18499 ms; retrieval was p50 46 ms / p95 123 ms, so local LLM generation is the bottleneck.
@@ -215,6 +265,7 @@ localchat-rag/
 ├── roadmap.md          # M0–M8 plan
 ├── recommendation.md   # production-deployment notes
 ├── demo_script.md      # 5-minute video walkthrough script
+├── Makefile             # install, ingest, chunk, build, data, run-ui, run-cli, eval, test
 └── requirements.txt
 ```
 
@@ -228,23 +279,7 @@ localchat-rag/
 | Drop the vector store only | `.venv/bin/python -m store.vector_store --reset` |
 | Wipe everything (raw + chunks + Chroma) | `rm -rf data/raw data/chunks data/chroma data/store_manifest.json` |
 
-After a wipe, re-run `ingest.wikipedia`, `chunking.splitter`, then `store.vector_store --build`.
-
----
-
-## Troubleshooting
-
-- **`Connection refused` on port 11434** — Ollama isn't running. Start it (`ollama serve` on Linux; relaunch the desktop app on macOS / Windows).
-- **First query is slow (~5–15 s)** — the encoder loads lazily on first use. Subsequent queries are sub-second on the embedding side; total latency is dominated by the LLM.
-- **`Disambiguation page` error during ingest** — a roster entry mapped to a Wikipedia disambiguation page. Edit `data/roster.json` to use the canonical title (e.g., `"Wolfgang Amadeus Mozart"` instead of `"Mozart"`).
-- **Streamlit shows stale data after re-ingest** — refresh the page; the encoder + store are reloaded.
-- **`ImportError: ...torch` on install** — pip is picking the wrong PyTorch wheel for your platform. See <https://pytorch.org/get-started/locally/> for the right index URL, or upgrade pip.
-
----
-
-## Implementation status
-
-This repo is implemented through **M8 docs** except for the external demo-video URL. The latest integrated eval passed 20/20 golden cases; track milestone status and verification notes in [`roadmap.md`](roadmap.md).
+After a wipe, run **`make data`** (or follow the **`python -m` fallback** commands in [Ingest data](#ingest-data)).
 
 ---
 
