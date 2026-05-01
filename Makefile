@@ -25,6 +25,7 @@ chunk:
 build:
 	$(PYTHON) -m store.vector_store --build
 
+# Full pipeline: ingest+chunk+build. Omit when submission already contains data/{raw,chunks,chroma,...}; rebuild Chroma-only with target `build`.
 data: ingest chunk build
 
 probe:

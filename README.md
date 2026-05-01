@@ -53,9 +53,9 @@ The takeaway: a strong model produces the contracts once; a cheaper model implem
 |------|-----|
 | [GNU Make](https://www.gnu.org/software/make/) | Recommended path uses `Makefile` targets (bundled on macOS/Linux) |
 | Python 3.10+ | Type-annotation syntax used in the codebase |
-| ~2 GB free disk | sentence-transformers model + Chroma DB + raw Wikipedia text |
+| ~2 GB free disk | Python packages, HF MiniLM cache, optional local `data/chroma/` |
 | [Ollama](https://ollama.com/download) installed and running | Local LLM (no external API allowed per project spec) |
-| Internet (one-time) | Pulling the LLM model and the Wikipedia corpus |
+| Internet | **Always** needed for **`make install`** (PyPI wheels) and **first-time** `ollama pull` / MiniLM (~80 MB to `~/.cache/huggingface/`). **Wikipedia** is only touched when you run **`make ingest`** (or Streamlit ingest) against missing or forced-refetch docs—**skip those if `data/` is already complete** in the clone |
 
 ---
 
@@ -63,11 +63,13 @@ The takeaway: a strong model produces the contracts once; a cheaper model implem
 
 Assumes **[GNU Make](https://www.gnu.org/software/make/)** (included on macOS/Linux; Windows: Visual Studio Build Tools **or** MSYS2 **or** WSL — if you cannot use Make, follow the **`python -m` fallbacks** in each section).
 
+This repository is intended to ship a **complete `data/` workspace** (`data/roster.json`, **`data/raw/`**, **`data/chunks/`**, **`data/chroma/`**, and **`data/store_manifest.json`**) so a grader avoids bulk Wikipedia ingestion and **`make build`**. Paths under `data/chroma/` are **binary persistence**—if Chroma errors on your machine, run **`make build`** once to rebuild the index from committed chunks (no Wikipedia needed).
+
 1. Obtain the project: `git clone <URL>` **or** unzip the submission archive, then `cd` into the project root (`Makefile` + `requirements.txt` live here).
-2. **`make install`** — creates `.venv/` and installs `requirements.txt`.
+2. **`make install`** — creates `.venv/` and installs `requirements.txt` (this is usually the **longest** step on a clean machine: large wheels such as PyTorch via `sentence-transformers`).
 3. [Run the local LLM](#run-the-local-llm-ollama): install Ollama, **`ollama pull llama3.2:3b`**, confirm **`curl http://127.0.0.1:11434/api/tags`** (Makefile does not manage Ollama).
-4. **`make data`** — Wikipedia fetch (**`make ingest`**), **`make chunk`**, **`make build`** into Chroma in one shot (`data` expands to ingest → chunk → build).
-5. **`make run-ui`** for Streamlit (**`make run-cli`** for CLI).
+4. **Indexing from Wikipedia (skip if `data/` is complete):** run **`make data`** only when raw JSON, chunk JSONL, or Chroma is missing, you wiped `data/`, or you changed `data/roster.json` and need a full refresh. That target runs **`make ingest`** then **`make chunk`** then **`make build`** and can take many minutes (API + embedding). See [Ingest data](#ingest-data).
+5. **`make run-ui`** for Streamlit (**`make run-cli`** for CLI). The first chat query may still trigger a **one-time MiniLM download** into `~/.cache/huggingface/` (~80 MB) even when Chroma is present.
 6. Try the [example queries](#example-queries).
 
 | Target | Purpose |
@@ -75,8 +77,8 @@ Assumes **[GNU Make](https://www.gnu.org/software/make/)** (included on macOS/Li
 | `make install` | Venv + `pip install -r requirements.txt` |
 | `make ingest` | Fetch roster → `data/raw/` |
 | `make chunk` | Raw → `data/chunks/` |
-| `make build` | Chroma index from chunks |
-| `make data` | `ingest` + `chunk` + `build` |
+| `make build` | Chroma index from chunks (use after clone if shipped Chroma fails to open) |
+| `make data` | `ingest` + `chunk` + `build` (long run; omit when full `data/` is in the repo) |
 | `make probe` | Offline check that MiniLM loads |
 | `make run-ui` / `make run-cli` | Streamlit / CLI |
 | `make eval` | Golden-question harness (needs Ollama) |
@@ -84,7 +86,7 @@ Assumes **[GNU Make](https://www.gnu.org/software/make/)** (included on macOS/Li
 
 Override paths when needed: `make ingest ROSTER=path/to/roster.json` or `make chunk RAW_DIR=... CHUNKS_DIR=...`.
 
-You need an internet connection at least once for ingest (and for pulling Ollama / the embedding model). After artifacts exist under `data/`, embeddings can run offline (`make probe`, `make eval`).
+After `make install`, **offline mode** is fine for chat and eval **if** `data/chroma/` works and Hugging Face has already cached MiniLM on that machine (`make probe` / `make eval` use offline flags where applicable).
 
 ---
 
@@ -141,7 +143,9 @@ curl http://127.0.0.1:11434/api/tags
 
 ## Ingest data
 
-Three steps: **fetch** Wikipedia articles for the roster, **chunk** them, then **embed + index** them.
+Rebuild **raw Wikipedia JSON**, **chunk JSONL**, and the **Chroma** index—only when `data/` is incomplete, you changed **`data/roster.json`**, or you want fresh text from Wikipedia (`--force` / Streamlit Force refetch).
+
+Three steps the Makefile chains: **fetch** → **chunk** → **embed + index**.
 
 **With Make (preferred):**
 
@@ -152,6 +156,10 @@ make ingest
 make chunk
 make build
 ```
+
+**Rebuild Chroma only (no Wikipedia):** if `data/raw/` and `data/chunks/` match the bundled submission but **`data/chroma/`** fails on your platform, **`make build`** alone is usually enough—fast compared to ingest, slow compared to skipping because it still walks every chunk embedding.
+
+**Time:** **`make data` can take several minutes or longer** when Wikipedia is contacted for every roster entry and embeddings run for every chunk. With **`data/raw/`** already cloned and only **`make chunk` + `make build`** needed (or **`make build`** only), wall time drops sharply versus a cold ingest.
 
 **Without Make** (same commands the Makefile runs):
 
@@ -259,7 +267,7 @@ localchat-rag/
 ├── eval/               # Agent 7 — golden-question harness
 ├── tests/              # per-area unit tests
 ├── agents/             # nine developer-role contracts
-├── data/               # raw docs, chunks, Chroma DB, roster
+├── data/               # bundled: roster, raw, chunks, chroma — commit for submit; graders skip make data unless rebuild needed
 ├── AGENTS.md           # agent index, lifecycle, prompt template, conflict resolution
 ├── product_prd.md      # locked requirements
 ├── roadmap.md          # M0–M8 plan
@@ -279,7 +287,7 @@ localchat-rag/
 | Drop the vector store only | `.venv/bin/python -m store.vector_store --reset` |
 | Wipe everything (raw + chunks + Chroma) | `rm -rf data/raw data/chunks data/chroma data/store_manifest.json` |
 
-After a wipe, run **`make data`** (or follow the **`python -m` fallback** commands in [Ingest data](#ingest-data)).
+After a wipe, run **`make data`** (or follow the **`python -m` fallback** commands in this section).
 
 ---
 
