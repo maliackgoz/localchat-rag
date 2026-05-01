@@ -25,6 +25,15 @@ from generation.llm import DEFAULT_MODEL
 def main() -> None:
     st.title("Ingestion")
     st.caption("Fetch Wikipedia pages, regenerate chunks, and upsert embeddings into Chroma.")
+    with st.expander("How roster and re-index work", expanded=False):
+        st.markdown(
+            """
+- **Add one entity (below)** appends that name to `data/roster.json` if it is new, then runs the full ingest → chunk → embed pipeline for **everyone** currently on the roster.
+- **Re-index full roster** does **not** edit the roster file. Use it after you **manually edit** `data/roster.json` (for example pasting the homework 20+20 list from the PDF), deleting entries you do not want, or fixing titles, then click the button below to refetch Wikipedia and rebuild Chroma.
+
+If raw pages are already downloaded, unchecked “force refetch” keeps cached articles; enable it after Wikipedia text changes or to avoid stale caches.
+"""
+        )
 
     try:
         runtime = _load_runtime(DEFAULT_MODEL)
@@ -96,12 +105,20 @@ def _render_add_entity_form(runtime: ChatRuntime) -> None:
 
 
 def _render_refresh_controls(runtime: ChatRuntime) -> None:
-    st.subheader("Refresh Existing Roster")
-    st.write("Use this when `data/roster.json` already has the entities you want to index.")
+    st.subheader("Re-index full roster")
+    st.write(
+        "Run ingest, chunking, and Chroma rebuild for **every name** listed in "
+        "`data/roster.json`—after you edited that file outside this page (homework roster, removals, typo fixes)."
+    )
     force = st.checkbox("Force refetch Wikipedia pages", value=False, key="refresh_force")
     if st.button("Run ingest, chunk, and rebuild index", use_container_width=True):
         try:
-            _run_pipeline(runtime, force=force, action="Refreshed roster and rebuilt index", roster_changed=False)
+            _run_pipeline(
+                runtime,
+                force=force,
+                action="Re-indexed full roster and rebuilt index",
+                roster_changed=False,
+            )
         except Exception as exc:
             st.error(f"Ingestion failed: {exc}")
 
