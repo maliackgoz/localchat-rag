@@ -102,14 +102,14 @@ Legend: ☐ pending · ◐ in progress · ☑ done
 
 **Owner:** Agent 6 · **Status:** ☑
 
-- ☑ `app/streamlit_app.py` with sidebar, chat history, sources expander, intent badge, latency
+- ☑ `app/localchat_rag.py` (navigation) plus `app/landing_page.py`, `app/chat_page.py`, `app/ingestion_page.py`; chat history, sources expander, intent badge, latency
 - ☑ `app/cli.py` REPL with `:sources`, `:reset`, `:stats`, `:quit`
 - ☑ "Reset chat" and (separately) "Clear index" controls
 - ☑ Streaming token rendering
 
-**Exit:** `streamlit run app/streamlit_app.py` and `python -m app.cli` both answer all 14 example questions and refuse the 2 failure cases.
+**Exit:** `streamlit run app/localchat_rag.py` and `python -m app.cli` both answer all 14 example questions and refuse the 2 failure cases.
 
-**Note:** Verified with `.venv/bin/python -m unittest` (29 tests), `.venv/bin/python -B -c "import app.streamlit_app"`, and CLI smoke checks using `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m app.cli`: "What did Marie Curie discover?" returned a grounded Marie Curie answer, and "Who is the president of Mars?" returned the required IDK refusal.
+**Note:** Verified with `.venv/bin/python -m unittest` (35 tests), `.venv/bin/python -m py_compile app/localchat_rag.py app/landing_page.py app/chat_page.py app/ingestion_page.py`, and CLI smoke checks using `HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 .venv/bin/python -B -m app.cli`: "What did Marie Curie discover?" returned a grounded Marie Curie answer, and "Who is the president of Mars?" returned the required IDK refusal.
 
 ---
 

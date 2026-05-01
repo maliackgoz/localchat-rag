@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import email.utils
 import hashlib
 import json
 import re
@@ -22,7 +23,8 @@ EntityType = Literal["person", "place"]
 SUMMARY_ENDPOINT = "https://en.wikipedia.org/api/rest_v1/page/summary/{title}"
 EXTRACT_ENDPOINT = "https://en.wikipedia.org/w/api.php"
 USER_AGENT = "localchat-rag/1.0 (educational)"
-THROTTLE_SECONDS = 0.15
+THROTTLE_SECONDS = 0.25
+_MAX_RATE_LIMIT_SLEEP = 120.0
 
 
 class WikipediaIngestError(RuntimeError):
@@ -188,19 +190,63 @@ def _fetch_full_page(title: str) -> dict[str, Any]:
     return page
 
 
-def _get_json(url: str, *, retries: int = 3) -> dict[str, Any]:
+def _retry_after_seconds(headers: email.message.Message) -> float | None:
+    raw = headers.get("Retry-After")
+    if not raw or not str(raw).strip():
+        return None
+    stripped = str(raw).strip()
+    if stripped.isdigit():
+        return min(_MAX_RATE_LIMIT_SLEEP, float(stripped))
+    try:
+        when = email.utils.parsedate_to_datetime(stripped)
+    except (TypeError, ValueError):
+        return None
+    if when is None:
+        return None
+    now = datetime.now(timezone.utc)
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    delta = (when - now).total_seconds()
+    return max(0.0, min(_MAX_RATE_LIMIT_SLEEP, delta))
+
+
+def _consume_http_error_body(exc: urllib.error.HTTPError) -> None:
+    try:
+        exc.read()
+    except Exception:
+        pass
+
+
+def _get_json(url: str, *, retries: int = 8) -> dict[str, Any]:
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     last_error: Exception | None = None
+    time.sleep(THROTTLE_SECONDS)
     for attempt in range(retries):
         try:
-            with urllib.request.urlopen(request, timeout=20) as response:
+            with urllib.request.urlopen(request, timeout=30) as response:
                 charset = response.headers.get_content_charset() or "utf-8"
                 payload = json.loads(response.read().decode(charset))
                 if not isinstance(payload, dict):
                     raise WikipediaFetchError(f"Wikipedia returned non-object JSON for {url}")
                 time.sleep(THROTTLE_SECONDS)
                 return payload
-        except (urllib.error.HTTPError, urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+        except urllib.error.HTTPError as exc:
+            last_error = exc
+            _consume_http_error_body(exc)
+            if attempt == retries - 1:
+                break
+            if exc.code in (429, 503):
+                wait = _retry_after_seconds(exc.headers) or min(
+                    _MAX_RATE_LIMIT_SLEEP, 3.0 * (2**attempt)
+                )
+            elif exc.code >= 500:
+                wait = min(30.0, THROTTLE_SECONDS * (2 ** (attempt + 1)))
+            elif 400 <= exc.code < 500:
+                break
+            else:
+                wait = THROTTLE_SECONDS * (2 ** (attempt + 1))
+            time.sleep(wait)
+        except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
             last_error = exc
             if attempt == retries - 1:
                 break

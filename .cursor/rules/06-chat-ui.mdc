@@ -12,7 +12,7 @@ Read `agents/06_chat_ui.md` before editing this area. Layout and CLI command sur
 
 ## Hard rules
 
-- **Two surfaces, same pipeline.** `app/streamlit_app.py` (primary, for the demo) and `app/cli.py` (fallback, for graders without a browser). Both call the same `Retriever` + `Answerer`.
+- **Two surfaces, same pipeline.** `app/localchat_rag.py` (Streamlit multipage hub: landing, chat, ingestion) and `app/cli.py` (fallback). Chat uses the same `Retriever` + `Answerer`.
 - **No business logic in the UI.** Routing, retrieval, generation, and refusal handling live in their owning agents. The UI renders results; it does not decide them.
 - **Streaming UX.** Tokens appear as they arrive (`st.write_stream` or equivalent). Sources fill in once the answer completes.
 - **Per-answer surface area** (Streamlit):

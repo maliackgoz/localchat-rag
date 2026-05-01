@@ -28,9 +28,6 @@ Supporting documents:
 - [`product_prd.md`](product_prd.md) — authoritative requirements and locked design decisions
 - [`roadmap.md`](roadmap.md) — phased milestones (M0–M8) with exit criteria
 - [`recommendation.md`](recommendation.md) — production-deployment notes and scale-up trade-offs
-- [`demo_script.md`](demo_script.md) — 5-minute recording script
-
-This mirrors the multi-agent convention from the predecessor `google-in-a-day` repo while adding more rigor: nine numbered agent files, an explicit PRD, and a milestone roadmap.
 
 ### How the multi-agent system was actually used during development
 
@@ -133,10 +130,10 @@ The default roster is in [`data/roster.json`](data/roster.json) and contains the
 **Streamlit (recommended for the demo):**
 
 ```bash
-.venv/bin/streamlit run app/streamlit_app.py
+.venv/bin/streamlit run app/localchat_rag.py
 ```
 
-Opens at <http://localhost:8501> with chat history, source citations, intent badge ("searched in: people / places / both"), and per-answer latency.
+Opens at <http://localhost:8501> with programmatic navigation (**localchat-rag** overview, **Chat**, **Ingestion**). Chat provides history, source citations, intent badge ("searched in: people / places / both"), and per-answer latency.
 
 **CLI (no browser needed):**
 
@@ -251,14 +248,6 @@ This repo is implemented through **M8 docs** except for the external demo-video 
 
 ---
 
-## Demo video
-
-The line-by-line recording guide is [`demo_script.md`](demo_script.md). Add the Loom or unlisted YouTube URL here after recording:
-
-[Demo video — pending recording URL]
-
----
-
 ## Documents at a glance
 
 | File | What it is |
@@ -268,5 +257,4 @@ The line-by-line recording guide is [`demo_script.md`](demo_script.md). Add the 
 | [`product_prd.md`](product_prd.md) | Authoritative requirements |
 | [`roadmap.md`](roadmap.md) | Phased milestones |
 | [`recommendation.md`](recommendation.md) | Production-deployment notes |
-| [`demo_script.md`](demo_script.md) | 5-minute demo script |
 | [`agents/`](agents/) | One contract file per role |

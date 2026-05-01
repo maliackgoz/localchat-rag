@@ -1,4 +1,4 @@
-"""Streamlit chat UI for localchat-rag."""
+"""Streamlit chat surface for localchat-rag."""
 
 from __future__ import annotations
 
@@ -26,8 +26,7 @@ from store.vector_store import RetrievedChunk
 
 
 def main() -> None:
-    st.set_page_config(page_title="localchat-rag", layout="wide")
-    st.title("localchat-rag")
+    st.title("Chat")
     st.caption("Local Wikipedia RAG over the project roster.")
 
     try:
@@ -105,7 +104,7 @@ def _render_empty_index_controls(runtime: ChatRuntime) -> None:
             report = rebuild_index(runtime)
         st.success(f"Indexed {report.get('chunks_built', 0)} chunks for {report.get('entities_built', 0)} entities.")
         st.rerun()
-    st.caption("If local chunks are missing, run `python -m ingest.wikipedia`, `make chunk`, then build the index.")
+    st.caption("If local chunks are missing, open **Ingestion** or run `python -m ingest.wikipedia`, then rebuild.")
 
 
 def _handle_question(runtime: ChatRuntime, question: str, show_context: bool) -> None:
@@ -186,5 +185,4 @@ def _render_source(chunk: RetrievedChunk, show_context: bool) -> None:
         st.caption("Enable 'Show retrieved context' to display the chunk text.")
 
 
-if __name__ == "__main__":
-    main()
+main()

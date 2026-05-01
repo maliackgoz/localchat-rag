@@ -11,23 +11,23 @@ Provide a chat experience over the RAG pipeline. Streamlit is the primary surfac
 
 ## Outputs
 
-- `app/streamlit_app.py` — chat UI
+- `app/localchat_rag.py` — Streamlit hub (`st.navigation`); sidebar labels: **localchat-rag** (landing), **Chat**, **Ingestion**
+- `app/landing_page.py` — system overview and locked technical decisions
+- `app/chat_page.py` — chat UI
+- `app/ingestion_page.py` — ingest + chunk + Chroma rebuild pipeline
 - `app/cli.py` — line-based REPL
 
 ## Streamlit interface
 
 Layout:
 
-- **Sidebar:** model name, embedding model, total chunks, "Reset chat" button, "Show retrieved context" toggle.
-- **Main pane:** chat history (user + assistant turns) using `st.chat_message`.
-- **Input:** `st.chat_input` at the bottom.
-- **Per-answer expander:** "Sources used" listing entity name, Wikipedia URL, and the chunk text actually shown to the model.
-- **Per-answer footer:** intent badge ("searched in: people / places / both"), latency in ms, refusal flag.
+- **Landing (localchat-rag):** README-style overview; table of locked embedding, LLM, chunk, store, and retrieval settings.
+- **Chat:** same behavior as MVP chat: sidebar model / embedding / chunk count / reset / context toggle / clear-index confirm; main history via `st.chat_message`; bottom `st.chat_input`; expandable sources showing entity name, Wikipedia URL, and chunk text fed to the model; footer intent + latency ms + refusal. Streaming renders tokens incrementally until the final chunk.
 
-Streaming: tokens appear as they arrive; sources are filled in once the answer completes.
+- **Ingestion:** roster updates, Wikipedia fetch, chunk regeneration, vector upsert + stats.
 
 ```bash
-streamlit run app/streamlit_app.py
+streamlit run app/localchat_rag.py
 ```
 
 ## CLI interface
@@ -64,6 +64,6 @@ In-memory only for MVP. Each session is independent. (Stretch: persist chat hist
 
 ## Done when
 
-- `streamlit run app/streamlit_app.py` opens a chat that answers all 14 example questions from the HW PDF.
+- `streamlit run app/localchat_rag.py` opens the UI; **Chat** answers all 14 example questions from the HW PDF.
 - The two failure-case questions render with refusal styling.
 - CLI handles the same questions and prints sources when `:sources` is on.
